@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>音视频监控、录屏监控示例</title>
+    <style>
+        #localtracks, #screentracks {
+          width: 320px;
+          height: 240px;
+          background: #000;
+        }
+      </style>
+      <script src="../assets/qnweb-rtc.js"></script>
+      <script src="../assets/index.js"></script>
+</head>
+
+<script>
+  console.log("current version", QNRTC.VERSION);
+
+  async function joinRoom() {
+      // 创建QNRTCClient对象
+      const client = QNRTC.createClient();
+    
+      const roomTokenInput = document.getElementById("roomtoken");
+      const roomToken = roomTokenInput.value;
+      await client.join(roomToken);
+      console.log("joinRoom success!");
+
+      await publish(client);
+  }
+
+  async function publish(client) {
+    // 同时采集麦克风音频和摄像头视频轨道
+    const localTracks = await QNRTC.createMicrophoneAndCameraTracks({}, { encoderConfig: '720p' });
+    console.log("my local tracks", localTracks);
+
+    // 将刚刚的 Track 列表发布到房间中
+    await client.publish(localTracks);
+    console.log("publish success!");
+
+    const localElement = document.getElementById("localtracks");
+    for (const localTrack of localTracks) {
+        if (localTrack.isAudio()) continue;
+        localTrack.play(localElement, {
+            mirror: true
+        });
+    }
+
+    // 采集屏幕共享的视频轨道
+    const screentracks = await QNRTC.createScreenVideoTrack({ screenVideoTag: "screen" });
+    console.log("my screen tracks", screentracks);
+
+    await client.publish(screentracks);
+    console.log("publish success!");
+
+    const screenElement = document.getElementById("screentracks");
+    screentracks.play(screenElement, {
+        mirror: true
+    });
+  }
+</script>
+
+<body>
+    <label>请输入 RoomToken 加入房间</label>
+    <input id="roomtoken" type="text" />
+    <button onclick="joinRoom()">加入房间</button>
+    <p>本地视频</p>
+    <div id="localtracks"></div>
+    <p>屏幕视频</p>
+    <div id="screentracks"></div>
+</body>
+
+</html>
